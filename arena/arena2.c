@@ -38,7 +38,7 @@ void * arena_push_size_no_zero(Arena *a, size_t size)
         assert(((a->allign-1) & a->allign) == 0);
         start += (a->allign - (a->used % a->allign)) % a->allign;
     }
-    void *result = a->data + start;
+    void *result = (char *)a->data + start;
     assert(start + size <= a->capacity);
     a->used = start + size;
 

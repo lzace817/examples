@@ -1,14 +1,27 @@
 #!/bin/bash
 
 set -e
+# set -x
 
-gcc -Wall -Wextra -ggdb -c arena1.c
-gcc -Wall -Wextra -ggdb -c arena2.c
-# gcc -Wall -Wextra -ggdb arena1.o test-arena.c -o test
-gcc -Wall -Wextra -ggdb arena2.o test-arena.c -o test
+CFLAGS="-Wall -Wextra -Wpedantic -Wstrict-prototypes -ggdb"
+# CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable" # NOTE(proto): comment to look for unsused
 
-echo DONE!
+gcc ${CFLAGS} -c arena1.c
+gcc ${CFLAGS} -c arena2.c
+gcc ${CFLAGS} -c test-arena.c
+
+gcc ${CFLAGS} arena1.o test-arena.o -o test1
+gcc ${CFLAGS} arena2.o test-arena.o -o test2
+
+echo build DONE!
 echo
 
-./test
-echo test ended with code $?
+set +e
+
+./test1
+echo test1 ended with code $?
+
+echo ""
+
+./test2
+echo test2 ended with code $?

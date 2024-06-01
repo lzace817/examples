@@ -5,7 +5,7 @@
 
 #define PANIC() do {                                           \
         fprintf(stderr, "%s:%d: PANIC\n", __FILE__,__LINE__);  \
-        exit(1);                                               \
+        abort();                                               \
     } while(0)
 
 #define DEFAULT_ARENA_CAPACITY 1024
@@ -34,7 +34,7 @@ void arena_release(Arena *a)
 
 void * arena_push_size(Arena *a, size_t size)
 {
-    void *result = a->data + a->used;
+    void *result = (char *)a->data + a->used;
 
     if(a->used + size > a->capacity) {
         PANIC();
@@ -59,4 +59,21 @@ void arena_set_allign(Arena *a, int allign)
 {
     (void)a;
     (void)allign;
+}
+
+void   arena_clear(Arena *a)
+{
+    a->used = 0;
+}
+
+size_t arena_pos(Arena *a)
+{
+    return a->used;
+}
+
+void   arena_pop_to(Arena *a, size_t pos)
+{
+    if(pos > a->capacity) PANIC();
+    // if(pos > a->used) PANIC();
+    a->used = pos;
 }
