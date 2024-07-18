@@ -3,6 +3,10 @@
 #include <sys/mman.h>
 #include <assert.h>
 
+#include <sys/types.h>
+#include <unistd.h>
+
+
 #define RESERVE_SIZE (1L*1024*1024*1024)
 #define TEST_COUNT (32*1024)
 #define CHUNK_SIZE (64L*1024)
@@ -45,7 +49,9 @@ int main(void)
     }
 
     printf("map start at: %p\n", data);
+    printf("PID: %d\n", (int)getpid());
 
+    // TODO(proto): on each step, capture `/proc/[pid]/status` after pressing enter
     printf("press ENTER to allocate and test\n");
     while (getchar() != '\n');
 
@@ -54,7 +60,11 @@ int main(void)
     printf("press ENTER to try give back");
     while (getchar() != '\n');
 
-    status = mprotect(data + CHUNK_SIZE, CHUNK_SIZE, PROT_NONE);
+#if 0
+    status = mprotect(data + CHUNK_SIZE, RESERVE_SIZE - CHUNK_SIZE, PROT_NONE);
+#else
+    status = madvise(data + CHUNK_SIZE, RESERVE_SIZE - CHUNK_SIZE, MADV_DONTNEED);
+#endif
     if(status == -1) {
         perror("ncmem");
         exit(1);

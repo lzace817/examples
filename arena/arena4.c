@@ -105,18 +105,21 @@ void * arena_push_size(Arena *a, size_t size)
 void arena_clear(Arena *a)
 {
     a->used = 0;
-#if 0
+#if 1
     if(a->shrink) {
         // this even works?
-        int status = mprotect(a + DEFAULT_ARENA_CAPACITY,
+        // int status = mprotect(a + DEFAULT_ARENA_CAPACITY,
+        //         a->mapped_cap - DEFAULT_ARENA_CAPACITY,
+        //         PROT_WRITE | PROT_READ);
+        int status = madvise(a + DEFAULT_ARENA_CAPACITY,
                 a->mapped_cap - DEFAULT_ARENA_CAPACITY,
-                PROT_WRITE | PROT_READ);
+                MADV_DONTNEED);
         if(status == -1){
             perror("ncmem");
             exit(1);
         }
-        a->mapped_cap = DEFAULT_ARENA_CAPACITY;
-        a->capacity = DEFAULT_ARENA_CAPACITY - sizeof(Arena);
+        // a->mapped_cap = DEFAULT_ARENA_CAPACITY;
+        // a->capacity = DEFAULT_ARENA_CAPACITY - sizeof(Arena);
     }
 #endif
 }

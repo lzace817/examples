@@ -36,3 +36,16 @@ ao desejar extender a memória disponível dentro da região reservada, conceda 
 ## how to give back memory?
 
 on windows, `VirtualAlloc` with `MEM_COMMIT`, `MEM_RESERVE` and etc, can be used to reserve virtual memory adress. But I'm not sure on how to do some of the corresponding stuff in linux.
+
+## status
+
+`status#.txt` stores the contents of `/proc/[pid]/status`
+diffing them is very instructive.
+
+`pmap -x <PID>` to se the virtual to resident comparison
+
+### VmData
+the VmData field represents the size of the data segment of a process. This includes the heap, any dynamically allocated memory (using malloc, for example), and memory mapped files. Essentially, it is the portion of the process's virtual memory space used for the process's data.
+
+### VmRss
+Resident set size (size in kB of pages the process has in real memory).
