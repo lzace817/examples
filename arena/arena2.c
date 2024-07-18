@@ -1,3 +1,10 @@
+/* Allign arena
+
+Features:
+- fixed capacity
+- panic when run out of memory
+- malloc upstream
+*/
 // #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,4 +85,10 @@ void arena_pop_size(Arena *a, size_t size)
 void arena_set_allign(Arena *a, int allign)
 {
     a->allign = allign;
+}
+
+void arena_print_report(Arena *a)
+{
+    printf("capacity: %ld\n", a->capacity);
+    printf("used: %ld\n", a->used);
 }

@@ -1,6 +1,1 @@
-*
-!*.c
-!.gitignore
-!tests.sh
-!README.md
-!*/
+build/

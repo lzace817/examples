@@ -1,33 +1,18 @@
 #!/bin/bash
 
-# ./assert
-# echo $?
-# ./segfault
-# echo $?
-# ./divz
-# echo $?
-
-tests=""
-compile_app() {
-    local base_name=$(basename "$1" .c)
-    tests+="$base_name "
-    gcc "$1" -o "${base_name}"
-}
-
-apps="*.c"
-
 set -e
-# set -x
 
-for app in $apps; do
-    compile_app "$app"
+CFLAGS="-Wall -Wextra -Wpedantic -Wstrict-prototypes -ggdb"
+CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable" # NOTE(proto): comment to look for unsused
+
+SRCS=`find -iname '*.c'`
+for file in ${SRCS}; do
+  mkdir -p build/"$(dirname "$file")"/
+  gcc ${CFLAGS} $file -o build/"$(dirname "$file")"/"$(basename "$file" .c)"
 done
 
-# disable stop on error
+echo -e "\033[1;32mDONE!\033[0m"
+
 set +e
-
-for t in $tests; do
-  echo ""
-  "./$t"
-  echo "$t terminated with code $?"
-done
+echo "Testing"
+. tests.list

@@ -1,11 +1,20 @@
+/* Basic arena.
+
+Features:
+- fixed capacity
+- no support for allignment
+- panic when run out of memory
+- malloc upstream
+*/
 // #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "arena.h"
 
 #define PANIC() do {                                           \
         fprintf(stderr, "%s:%d: PANIC\n", __FILE__,__LINE__);  \
-        abort();                                               \
+        exit(1);                                               \
     } while(0)
 
 #define DEFAULT_ARENA_CAPACITY 1024
@@ -45,23 +54,7 @@ void * arena_push_size(Arena *a, size_t size)
     return result;
 }
 
-void arena_free_all(Arena *a)
-{
-    a->used = 0;
-}
-
-size_t arena_used(Arena *a)
-{
-    return a->used;
-}
-
-void arena_set_allign(Arena *a, int allign)
-{
-    (void)a;
-    (void)allign;
-}
-
-void   arena_clear(Arena *a)
+void arena_clear(Arena *a)
 {
     a->used = 0;
 }
@@ -71,9 +64,26 @@ size_t arena_pos(Arena *a)
     return a->used;
 }
 
-void   arena_pop_to(Arena *a, size_t pos)
+void arena_pop_to(Arena *a, size_t pos)
 {
-    if(pos > a->capacity) PANIC();
-    // if(pos > a->used) PANIC();
+    assert(pos <= a->capacity);
     a->used = pos;
+}
+
+void arena_pop_size(Arena *a, size_t size)
+{
+    assert(size <= a->used);
+    a->used -= size;
+}
+
+void arena_set_allign(Arena *a, int allign)
+{
+    (void)a;
+    (void)allign;
+}
+
+void arena_print_report(Arena *a)
+{
+    printf("capacity: %ld\n", a->capacity);
+    printf("used: %ld\n", a->used);
 }

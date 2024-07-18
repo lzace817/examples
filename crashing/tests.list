@@ -1,0 +1,4 @@
+./build/signal
+./build/divz
+./build/segfault
+./build/assert
