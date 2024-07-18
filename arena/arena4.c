@@ -106,7 +106,7 @@ void arena_clear(Arena *a)
 {
     a->used = 0;
 #if 1
-    if(a->shrink) {
+    if(a->shrink && (a->mapped_cap - DEFAULT_ARENA_CAPACITY) > 0) {
         // this even works?
         // int status = mprotect(a + DEFAULT_ARENA_CAPACITY,
         //         a->mapped_cap - DEFAULT_ARENA_CAPACITY,
