@@ -42,7 +42,7 @@ int main(void)
     test(8, 200);
     test(50, 3000000000);
     test(-2000000000, 3000000000);
-    test(-1, INT32_MAX);
+    test(-1, UINT32_MAX);
     test(-3, 7);
     return 0;
 }
