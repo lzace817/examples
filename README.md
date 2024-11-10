@@ -1,3 +1,3 @@
-# Examples in C
+# Examples
 
-small examples and tests for many C features
+small examples for quick reference
