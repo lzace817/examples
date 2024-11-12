@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main() {
+int main(void) {
     //TODO(proto): test for different types
     int a,b;
     a = 1000000000;

@@ -3,6 +3,7 @@
 set -e
 
 CFLAGS="-Wall -Wextra -Wpedantic -Wstrict-prototypes -ggdb"
+CFLAGS="${CFLAGS} -Wmissing-prototypes"
 CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable" # NOTE(proto): comment to look for unsused
 
 for file in *.c; do
