@@ -1,10 +1,13 @@
 #!/bin/bash
 set -e
 # set -x
-PATH="/home/proto/programs/myprograms/cross-test/toolchain/gcc-linaro-12.2.1-2023.04-x86_64_arm-linux-gnueabihf/bin:${PATH}"
+
+# add compiler to path
+PATH="$HOME/programs/myprograms/cross-test/toolchain/gcc-linaro-12.2.1-2023.04-x86_64_arm-linux-gnueabihf/bin:${PATH}"
+
 CFLAGS="-Wall -Wextra -Wpedantic -Wstrict-prototypes -Wswitch-enum -ggdb"
 CFLAGS="${CFLAGS} -Wmissing-prototypes"
-CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable" # NOTE(proto): comment to look for unsused
+CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable" # NOTE: comment to look for unsused
 
 CROSS_COMPILE=""
 PREFIX="libraries"
@@ -14,6 +17,7 @@ PREFIX="libraries"
 
 CC="${CROSS_COMPILE}gcc"
 mkdir -p $PREFIX/lib
+mkdir -p $PREFIX/include
 
 so_compile(){
     file=$1
@@ -37,26 +41,19 @@ echo Compiling libraries
 
 make_lib bar
 make_lib cawabunga
+cp bar.h $PREFIX/include/
 
 
 # first version
 ln -sf foo-v1.c foo.c
 make_lib foo -lbar
+cp foo.h $PREFIX/include/
 
 # second version
-
 PATCH=1
 ln -sf foo-v2.c foo.c
 make_lib foo -lcawabunga # now we depend on cawabunga
-
-
-mkdir -p $PREFIX/include
-cp foo.h $PREFIX/include/
-cp bar.h $PREFIX/include/
 cp cawabunga.h $PREFIX/include/
-
-
-
 
 ./client/build-test.sh
 
