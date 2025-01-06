@@ -2,18 +2,12 @@
 set -e
 # set -x
 
-# add compiler to path
-PATH="$HOME/programs/myprograms/cross-test/toolchain/gcc-linaro-12.2.1-2023.04-x86_64_arm-linux-gnueabihf/bin:${PATH}"
-
 CFLAGS="-Wall -Wextra -Wpedantic -Wstrict-prototypes -Wswitch-enum -ggdb"
 CFLAGS="${CFLAGS} -Wmissing-prototypes"
 CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable" # NOTE: comment to look for unsused
 
 CROSS_COMPILE=""
 PREFIX="libraries"
-
-# CROSS_COMPILE="arm-linux-gnueabihf-"
-# PREFIX="native"
 
 CC="${CROSS_COMPILE}gcc"
 mkdir -p $PREFIX/lib
