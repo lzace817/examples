@@ -4,7 +4,8 @@ set -e
 
 CFLAGS="-Wall -Wextra -Wpedantic -Wstrict-prototypes -Wswitch-enum -ggdb"
 CFLAGS="${CFLAGS} -Wmissing-prototypes"
-CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable" # NOTE: comment to look for unsused
+# NOTE: comment line bellow to look for unsused
+CFLAGS="${CFLAGS} -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable"
 
 CROSS_COMPILE=""
 PREFIX="libraries"
@@ -15,7 +16,8 @@ mkdir -p $PREFIX/include
 
 so_compile(){
     file=$1
-    ${CC} ${CFLAGS} -c -fPIC -I. $file -o $PREFIX/"$(dirname "$file")"/"$(basename "$file" .c).o"
+    output=$PREFIX/"$(dirname "$file")"/"$(basename "$file" .c).o"
+    ${CC} ${CFLAGS} -c -fPIC -I. $file -o $output
 }
 
 VERSION=1.0
@@ -26,7 +28,9 @@ make_lib() {
     dep=$2
     so_compile $base.c
     LIB_NAME=lib$base.so
-    ${CC} ${CFLAGS} -shared -Wl,-soname,"$LIB_NAME.${VERSION}" -fPIC $PREFIX/$base.o -L$PREFIX/lib/ $dep -o $PREFIX/lib/${LIB_NAME}.${VERSION}.${PATCH}
+    ${CC} ${CFLAGS} -shared -Wl,-soname,"$LIB_NAME.${VERSION}" -fPIC \
+        $PREFIX/$base.o -L$PREFIX/lib/ $dep \
+        -o $PREFIX/lib/${LIB_NAME}.${VERSION}.${PATCH}
     ln -s -f "$LIB_NAME.${VERSION}.$PATCH" $PREFIX/lib/$LIB_NAME
     ln -s -f "$LIB_NAME.${VERSION}.$PATCH" "$PREFIX/lib/$LIB_NAME.${VERSION}"
 }
