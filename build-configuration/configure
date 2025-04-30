@@ -1,0 +1,15 @@
+#!/bin/bash
+
+options=("plain" "fancy" )
+
+PS3="message type (1-${#options[@]}): "
+
+select opt in "${options[@]}"
+do
+    if [ -n "$opt" ]; then
+        cat << EOF > .config
+MSGT = CONFIG_$(echo $opt | tr '[:lower:]' '[:upper:]')
+EOF
+        break
+    fi
+done
