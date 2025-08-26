@@ -19,6 +19,11 @@ HEADERS = $(wildcard $(srcdir)/libs/*.h)
 
 all: $(BIN)
 
+ifneq ($(OBJS),)
+	obj_blob := $(outdir)/libblob.a
+	LDFLAGS  := $(LDFLAGS) -lblob
+endif
+
 list:
 	echo "objects" $(OBJS)
 	echo "bin" $(BIN)
@@ -33,13 +38,16 @@ $(OBJS): | $(OBJ_DIRS)
 $(OBJ_DIRS):
 	@mkdir -p $@
 
+$(outdir):
+	@mkdir -p $@
+
 $(outdir)/%.o: $(srcdir)/%.c | $(HEADERS)
 	@echo "compiling $@"
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
-$(outdir)/%: $(outdir)/%.o $(outdir)/libblob.a | $(HEADERS)
+$(outdir)/%: $(outdir)/%.o $(obj_blob) | $(HEADERS) $(outdir)
 	@echo "linking $@"
-	@$(CC) $(CFLAGS) -L$(outdir) -o $@ $< -lblob
+	@$(CC) $(CFLAGS) -L$(outdir) -o $@ $< $(LDFLAGS)
 
 clean:
 	rm -r $(outdir)
