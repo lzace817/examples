@@ -96,6 +96,8 @@
         size_t cstr_size = strlen((cstr));          \
         da_append_many((sb), (cstr), cstr_size);    \
     } while(0)
+
+
 //
 // Arena
 //
@@ -147,7 +149,7 @@ void   arena_status(Arena *a);
         (da)->items[(da)->size++] = (item);                                \
     } while(0)
 
-
+void da_reserve(void** items, size_t *capacity, size_t desired, size_t item_size);
 // string view
 typedef struct {
     const char* items;
@@ -159,7 +161,7 @@ typedef struct {
 #define SV(strlit) ((String_View){.size=sizeof(strlit)-1, .items=strlit})
 
 bool sv_starts_with(String_View sv, String_View prefix);
-String_View sv_chop_by_delim(String_View* sb, const char delim);
+bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk);
 String_View sb_to_sv(String_Builder sb);
 String_View sv_trim_right(String_View sv);
 String_View sv_trim_left(String_View sv);
@@ -171,13 +173,15 @@ void sb_append_as_hex(String_Builder *dest, const String_View src);
 void sb_append_ascii(String_Builder* dst, String_View src);
 void sb_append_hex_dump(String_Builder* dst, String_View src);
 
+bool read_entire_file(const char* path, String_Builder *sb);
+
 ////    end header file    ////////////////////////////////////////////////////
 #endif // COMMONS_H
 
 #ifdef COMMONS_IMPLEMENTATION
 #undef COMMONS_IMPLEMENTATION
 
-internal void da_reserve(void** items, size_t *capacity, size_t desired, size_t item_size)
+void da_reserve(void** items, size_t *capacity, size_t desired, size_t item_size)
 {
     if (desired <= *capacity) return;
 #define DA_BASE_CAP 8
@@ -187,7 +191,7 @@ internal void da_reserve(void** items, size_t *capacity, size_t desired, size_t 
     assert(*items);
 }
 
-internal bool read_entire_file(const char* path, String_Builder *sb)
+bool read_entire_file(const char* path, String_Builder *sb)
 {
     bool result = true;
     FILE* f = fopen(path, "rb");
@@ -360,9 +364,8 @@ internal void arena_da_reserve(Arena *a, void** items, size_t *capacity, size_t 
 }
 
 //sv
-String_View sv_chop_by_delim(String_View* sb, const char delim)
+bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk)
 {
-    String_View result = {.items = sb->items};
     const char* cursor;
     const char* end = sb->items + sb->size;
 
@@ -370,11 +373,17 @@ String_View sv_chop_by_delim(String_View* sb, const char delim)
         if(*cursor == delim) break;
     }
 
-    result.size =  cursor - result.items;
-    sb->items += result.size + ((cursor < end)? 1: 0);
-    sb->size  -= result.size + ((cursor < end)? 1: 0);
+    String_View result = sv_from_parts(sb->items, cursor - sb->items);
+    if (cursor < end) {
+        sb->items += result.size + 1;
+        sb->size  -= result.size + 1;
+        if (chunk) {
+            *chunk = result;
+        }
+        return true;
+    }
 
-    return result;
+    return false;
 }
 
 String_View sb_to_sv(String_Builder sb)
