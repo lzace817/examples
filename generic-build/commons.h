@@ -172,7 +172,7 @@ void sb_append_uint(String_Builder* sb, size_t val, int base, int min_digits);
 void sb_append_as_hex(String_Builder *dest, const String_View src);
 void sb_append_ascii(String_Builder* dst, String_View src);
 void sb_append_hex_dump(String_Builder* dst, String_View src);
-
+bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_string);
 bool read_entire_file(const char* path, String_Builder *sb);
 
 ////    end header file    ////////////////////////////////////////////////////
@@ -518,6 +518,25 @@ void sb_append_hex_dump(String_Builder* dst, String_View src)
     da_append_many(dst, "  ", 2);
     sb_append_ascii(dst, sv_from_parts(src.items + line, src.size - line));
     da_append(dst, '\n');
+}
+
+bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_string)
+{
+    if((hex_string.size % 2) != 0) return false;
+
+    da_reserve((void*)&sb->items, &sb->capacity, sb->size + hex_string.size / 2,
+            sizeof(*sb->items));
+    for(size_t i = 0; i < hex_string.size; i+=2) {
+        unsigned char byte = ((hex_string.items[i] & 0xF)
+                + (hex_string.items[i] >> 6))
+                | ((hex_string.items[i] >> 3) & 0x8);
+
+        byte = (byte << 4) | ((hex_string.items[i+1] & 0xF)
+                + (hex_string.items[i+1] >> 6))
+                | ((hex_string.items[i+1] >> 3) & 0x8);
+        da_append(sb, byte);
+    }
+    return true;
 }
 
 #endif
