@@ -77,19 +77,22 @@
 
 #define da_append(da, item)                                \
     do {                                                   \
-        da_reserve((void*)&(da)->items, &(da)->capacity,   \
+        da__reserve_with_size((void*)&(da)->items, &(da)->capacity,   \
                 (da)->size+1, sizeof(*(da)->items));       \
         (da)->items[(da)->size++] = (item);                \
     } while(0)
 
 #define da_append_many(da, _items, num_items)                                           \
     do {                                                                                \
-        da_reserve((void*)&(da)->items, &(da)->capacity,                                \
+        da__reserve_with_size((void*)&(da)->items, &(da)->capacity,                                \
                 (da)->size + (num_items), sizeof(*(da)->items));                        \
         memcpy((da)->items + (da)->size, (_items), sizeof(*(da)->items) * num_items);   \
         (da)->size += (num_items);                                                      \
     } while(0)
 
+#define da_reserve(da, increment)                                 \
+    da__reserve_with_size((void*)&(da)->items, &(da)->capacity,   \
+            (da)->size + (increment), sizeof(*(da)->items))
 
 #define sb_append_cstr(sb, cstr)                    \
     do {                                            \
@@ -149,7 +152,7 @@ void   arena_status(Arena *a);
         (da)->items[(da)->size++] = (item);                                \
     } while(0)
 
-void da_reserve(void** items, size_t *capacity, size_t desired, size_t item_size);
+void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_t item_size);
 // string view
 typedef struct {
     const char* items;
@@ -181,7 +184,7 @@ bool read_entire_file(const char* path, String_Builder *sb);
 #ifdef COMMONS_IMPLEMENTATION
 #undef COMMONS_IMPLEMENTATION
 
-void da_reserve(void** items, size_t *capacity, size_t desired, size_t item_size)
+void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_t item_size)
 {
     if (desired <= *capacity) return;
 #define DA_BASE_CAP 8
@@ -216,7 +219,7 @@ bool read_entire_file(const char* path, String_Builder *sb)
         goto cleanup;
     }
 
-    da_reserve((void*)&sb->items, &sb->capacity, sb->size + file_size, sizeof(*sb->items));
+    da__reserve_with_size((void*)&sb->items, &sb->capacity, sb->size + file_size, sizeof(*sb->items));
     if (fread(sb->items + sb->size, file_size, 1, f) == 0) {
         if(ferror(f)) {
             return false;
@@ -452,7 +455,7 @@ void sb_append_uint(String_Builder* sb, size_t val, int base, int min_digits)
 
     if(min_digits > dlen) dlen = min_digits;
 
-    da_reserve((void*)&sb->items, &sb->capacity, sb->size + dlen, sizeof(*sb->items));
+    da__reserve_with_size((void*)&sb->items, &sb->capacity, sb->size + dlen, sizeof(*sb->items));
 
     while(dlen) {
         da_append(sb, digits[--dlen]);
@@ -524,7 +527,7 @@ bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_stri
 {
     if((hex_string.size % 2) != 0) return false;
 
-    da_reserve((void*)&sb->items, &sb->capacity, sb->size + hex_string.size / 2,
+    da__reserve_with_size((void*)&sb->items, &sb->capacity, sb->size + hex_string.size / 2,
             sizeof(*sb->items));
     for(size_t i = 0; i < hex_string.size; i+=2) {
         unsigned char byte = ((hex_string.items[i] & 0xF)
