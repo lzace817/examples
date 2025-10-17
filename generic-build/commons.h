@@ -63,6 +63,25 @@
 #define UNREACHEABLE(fmt) do{ fprintf(stderr, "%s:%i: UNREACHEABLE: "         \
         fmt "\n", __FILE__, __LINE__); abort();} while(0)
 
+typedef enum {
+    LOG_LEVEL_ERROR = 0,
+    LOG_LEVEL_WARN,
+    LOG_LEVEL_INFO,
+    LOG_LEVEL_DEBUG
+} LogLevel;
+
+extern LogLevel global_log_level;
+
+#define logfe(fmt, ...) if (global_log_level >= LOG_LEVEL_ERROR) fprintf(stderr, "[ERROR] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define logfw(fmt, ...) if (global_log_level >= LOG_LEVEL_WARN ) fprintf(stderr, "[WARN] %s:%d: "  fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define logfi(fmt, ...) if (global_log_level >= LOG_LEVEL_INFO ) fprintf(stdout, "[INFO] "  fmt "\n", ##__VA_ARGS__)
+#define logfd(fmt, ...) if (global_log_level >= LOG_LEVEL_DEBUG) fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
+
+#define logfed(...)
+#define logfwd(...)
+#define logfid(...)
+#define logfdd(...)
+
 /* Dynamic array:
  *
  *     da_append(da, item)      | adds item to da
@@ -75,19 +94,20 @@
     size_t capacity;
 } String_Builder;
 
-#define da_append(da, item)                                \
-    do {                                                   \
-        da__reserve_with_size((void*)&(da)->items, &(da)->capacity,   \
-                (da)->size+1, sizeof(*(da)->items));       \
-        (da)->items[(da)->size++] = (item);                \
+#define da_append(da, item)                                         \
+    do {                                                            \
+        da__reserve_with_size((void*)&(da)->items, &(da)->capacity, \
+                (da)->size+1, sizeof(*(da)->items));                \
+        (da)->items[(da)->size++] = (item);                         \
     } while(0)
 
-#define da_append_many(da, _items, num_items)                                           \
-    do {                                                                                \
-        da__reserve_with_size((void*)&(da)->items, &(da)->capacity,                                \
-                (da)->size + (num_items), sizeof(*(da)->items));                        \
-        memcpy((da)->items + (da)->size, (_items), sizeof(*(da)->items) * num_items);   \
-        (da)->size += (num_items);                                                      \
+#define da_append_many(da, _items, num_items)                       \
+    do {                                                            \
+        da__reserve_with_size((void*)&(da)->items, &(da)->capacity, \
+                (da)->size + (num_items), sizeof(*(da)->items));    \
+        memcpy((da)->items + (da)->size, (_items),                  \
+                sizeof(*(da)->items) * num_items);                  \
+        (da)->size += (num_items);                                  \
     } while(0)
 
 #define da_reserve(da, increment)                                 \
@@ -183,6 +203,8 @@ bool read_entire_file(const char* path, String_Builder *sb);
 
 #ifdef COMMONS_IMPLEMENTATION
 #undef COMMONS_IMPLEMENTATION
+
+LogLevel global_log_level = LOG_LEVEL_WARN;
 
 void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_t item_size)
 {
