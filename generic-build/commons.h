@@ -216,6 +216,7 @@ void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_
     assert(*items);
 }
 
+#define READ_SIZE_BLOCK 1024
 bool read_entire_file(const char* path, String_Builder *sb)
 {
     bool result = true;
@@ -236,12 +237,25 @@ bool read_entire_file(const char* path, String_Builder *sb)
         goto cleanup;
     }
 
+    if(file_size == 0) {
+        while(!feof(f)) {
+            da_reserve(sb, sb->size + READ_SIZE_BLOCK);
+            size_t r = fread(sb->items + sb->size, 1, READ_SIZE_BLOCK, f);
+            if (r == 0 && ferror(f)) {
+                result = false;
+                goto cleanup;
+            }
+            sb->size += r;
+        }
+        goto cleanup;
+    }
+
     if (fseek(f, 0, SEEK_SET) != 0) {
         result = false;
         goto cleanup;
     }
 
-    da__reserve_with_size((void*)&sb->items, &sb->capacity, sb->size + file_size, sizeof(*sb->items));
+    da_reserve(sb, sb->size + file_size);
     if (fread(sb->items + sb->size, file_size, 1, f) == 0) {
         if(ferror(f)) {
             return false;
