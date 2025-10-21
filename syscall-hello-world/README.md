@@ -1,6 +1,6 @@
 # hello world with syscall
 
-> [WARNING]
+> [!WARNING]
 > TODO: find a way to compile it statically with no libc
 
 # references
