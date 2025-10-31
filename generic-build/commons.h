@@ -389,7 +389,7 @@ void   arena_status(Arena *a)
 
 }
 
-internal void arena_da_reserve(Arena *a, void** items, size_t *capacity, size_t desired, size_t item_size)
+void arena_da_reserve(Arena *a, void** items, size_t *capacity, size_t desired, size_t item_size)
 {
     if (desired <= *capacity) return;
     size_t old_cap = *capacity;
