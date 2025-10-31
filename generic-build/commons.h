@@ -28,6 +28,14 @@
     void   arena_set_allign(Arena *a, int allign);
     void   arena_status(Arena *a);
 
+    ## repacement for formated strings
+    - sb_append_uint
+    - sb_append_as_hex
+    - sb_append_ascii
+    - sb_append_hex_dump
+    - sb_append_bytes_from_hex_str
+    TODO: sb_append_float
+
     ## miscelaneous
 
     - ARRAYSIZE(array)
@@ -38,10 +46,11 @@
 
 
     ## TODO
-    -[ ] hex_string <-> byte array and xxd style hexdump
+    -[x] hex_string <-> byte array and xxd style hexdump
     -[ ] base64     <-> byte array
     -[ ] sb_appendf(sb, fmt, ...)
  */
+
 #ifndef COMMONS_H
 #define COMMONS_H
 
@@ -165,13 +174,19 @@ void   arena_status(Arena *a);
 
 /*   # arena da
 */
-#define arena_da_append(arena, da, item)                                   \
-    do {                                                                   \
-        arena_da_reserve((arena), (void*)&(da)->items, &(da)->capacity,    \
-                (da)->size+1, sizeof(*(da)->items));                       \
-        (da)->items[(da)->size++] = (item);                                \
+#define arena_da_append(arena, da, item)                           \
+    do {                                                           \
+        arena__da_reserve_with_size((arena), (void*)&(da)->items,  \
+        &(da)->capacity, (da)->size+1, sizeof(*(da)->items));      \
+        (da)->items[(da)->size++] = (item);                        \
     } while(0)
 
+#define arena_da_reserve(arena, increment) arena__da_reserve_with_size( \
+        (arena), (void*)&(da)->items, &(da)->capacity,                  \
+        (da)->size + (increment), sizeof(*(da)->items))
+
+void arena__da_reserve_with_size(Arena *a, void** items, size_t *capacity,
+            size_t desired, size_t item_size);
 void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_t item_size);
 // string view
 typedef struct {
@@ -389,7 +404,7 @@ void   arena_status(Arena *a)
 
 }
 
-void arena_da_reserve(Arena *a, void** items, size_t *capacity, size_t desired, size_t item_size)
+void arena__da_reserve_with_size(Arena *a, void** items, size_t *capacity, size_t desired, size_t item_size)
 {
     if (desired <= *capacity) return;
     size_t old_cap = *capacity;
