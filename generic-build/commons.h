@@ -62,7 +62,7 @@
 #include <assert.h>
 #include <ctype.h>
 
-#define ARRAYSIZE(array) sizeof(array) / sizeof(*(array))
+#define ARRAYSIZE(array) (sizeof(array) / sizeof(*(array)))
 #define internal static
 #define global_variable static
 
