@@ -14,6 +14,9 @@ Features:
 #include <string.h> //memset
 #include "arena.h"
 
+void * arena_push_size_no_zero(Arena *a, size_t size);
+
+
 #define MAX(v1, v2) ((v1) > (v2))? (v1) : (v2)
 #define IS_POW2(num) ((num) > 0 )?(((num)-1) & (num)) == 0:0
 

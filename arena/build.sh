@@ -11,6 +11,6 @@ for file in *.c; do
   gcc ${CFLAGS} $file -c -o build/"$(dirname "$file")"/"$(basename "$file" .c).o"
 done
 
-gcc ${CFLAGS} build/test-arena.o build/arena4.o -o build/test-arena
+gcc ${CFLAGS} build/test-arena.o build/arena5.o -o build/test-arena
 
 echo -e "\033[1;32mDONE!\033[0m"

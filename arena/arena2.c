@@ -10,7 +10,11 @@ Features:
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h> //memset
+
 #include "arena.h"
+
+void * arena_push_size_no_zero(Arena *a, size_t size);
+
 
 #define DEFAULT_ARENA_CAPACITY (1024+sizeof(Arena))
 

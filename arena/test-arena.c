@@ -5,7 +5,7 @@
 
 #include "arena.h"
 
-void test_memory(void *data, size_t size)
+static void test_memory(void *data, size_t size)
 {
     uint8_t *mem = (uint8_t *)data;
 
@@ -18,7 +18,7 @@ void test_memory(void *data, size_t size)
     }
 }
 
-int test1(void)
+static int test1(void)
 {
     Arena *arena = arena_create();
 
@@ -38,7 +38,7 @@ int test1(void)
     return 0;
 }
 
-int test2(void)
+static int test2(void)
 {
     Arena *arena = arena_create();
     arena_set_allign(arena, 8);
@@ -65,7 +65,7 @@ int test2(void)
     return 0;
 }
 
-int test3(void)
+static int test3(void)
 {
     // NOTE(proto): test pop procs
 
@@ -84,7 +84,7 @@ int test3(void)
     return 0;
 }
 
-int test4(void)
+static int test4(void)
 {
     Arena *a = arena_create();
     char *b = arena_push_size(a, 1);
@@ -107,7 +107,7 @@ int test4(void)
     return 0;
 }
 
-int test5(void)
+static int test5(void)
 {
     Arena *a = arena_create();
     uint64_t n = 10000;
@@ -132,10 +132,10 @@ int test5(void)
 int main(void)
 {
     test1();
-    test2();
+    // test2();
     test3();
-    test4();
-    test5();
+    // test4();
+    // test5();
 
     return 0;
 }

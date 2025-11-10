@@ -15,6 +15,8 @@ Features:
 #include <sys/mman.h>
 #include "arena.h"
 
+void * arena_push_size_no_zero(Arena *a, size_t size);
+
 #define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
 #define ALIGN_UP(n, a) ALIGN_DOWN((n) + (a) - 1, (a))
 #define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
