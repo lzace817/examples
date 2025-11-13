@@ -97,7 +97,7 @@ extern LogLevel global_log_level;
  *
  */
 
- typedef struct {
+typedef struct {
     char* items;
     size_t size;
     size_t capacity;
@@ -212,6 +212,7 @@ void sb_append_ascii(String_Builder* dst, String_View src);
 void sb_append_hex_dump(String_Builder* dst, String_View src);
 bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_string);
 bool read_entire_file(const char* path, String_Builder *sb);
+bool write_entire_file(const char *path, const char *data, unsigned int size);
 
 ////    end header file    ////////////////////////////////////////////////////
 #endif // COMMONS_H
@@ -246,6 +247,8 @@ bool read_entire_file(const char* path, String_Builder *sb)
         goto cleanup;
     }
 
+    // TODO: why it is not complaining about goto jump over it?
+    // fix it
     long file_size = ftell(f);
     if(file_size < 0) {
         result = false;
@@ -254,7 +257,10 @@ bool read_entire_file(const char* path, String_Builder *sb)
 
     if(file_size == 0) {
         while(!feof(f)) {
-            da_reserve(sb, sb->size + READ_SIZE_BLOCK);
+            // da_reserve(sb, READ_SIZE_BLOCK);
+            da__reserve_with_size((void**)(&sb->items), &sb->capacity,
+                    sb->size + READ_SIZE_BLOCK, sizeof(*sb->items));
+
             size_t r = fread(sb->items + sb->size, 1, READ_SIZE_BLOCK, f);
             if (r == 0 && ferror(f)) {
                 result = false;
@@ -270,7 +276,9 @@ bool read_entire_file(const char* path, String_Builder *sb)
         goto cleanup;
     }
 
-    da_reserve(sb, sb->size + file_size);
+    // da_reserve(sb, file_size);
+    da__reserve_with_size((void**)(&sb->items), &sb->capacity,
+            sb->size + file_size, sizeof(*sb->items));
     if (fread(sb->items + sb->size, file_size, 1, f) == 0) {
         if(ferror(f)) {
             return false;
@@ -285,6 +293,21 @@ cleanup:
     return result;
 }
 
+bool write_entire_file(const char *path, const char *data, unsigned int size)
+{
+    FILE *fp;
+
+    fp = fopen(path, "w");
+    if(fp == NULL) {
+        return false;
+    }
+
+    fwrite(data, 1, size, fp);
+    fflush(fp);
+
+    fclose(fp);
+    return true;
+}
 
 internal Block *new_block(size_t desired)
 {
