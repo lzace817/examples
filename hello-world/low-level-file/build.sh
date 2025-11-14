@@ -2,8 +2,6 @@
 
 set -e
 mkdir -p build
-gcc fd-hello.c -o fd-hello
-
-./fd-hello
+gcc hello.c -o hello
 
 echo -e "\033[1;32mDONE!\033[0m"

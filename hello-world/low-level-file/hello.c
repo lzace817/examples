@@ -4,7 +4,7 @@
 int main(void)
 {
     int fd = open("out.txt", O_CREAT | O_WRONLY, 0664);
-    write(fd, "Hello file descriptor\n", 22);
+    write(fd, "Hello world with low level file api\n", 36);
     close(fd);
     return 0;
 }
