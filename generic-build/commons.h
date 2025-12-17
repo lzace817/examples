@@ -1,56 +1,3 @@
-/** # common stuff for C
-
-    - dynamic arrays
-    - arena allocator
-    - and other basics
-
-    ## dynamic arrays
-
-    using libc:
-    - da_append(da, x)
-    - da_append_many(da, items, num_items)
-    - da_pop(da)
-    - da_free(da)
-    - sb_append_cstr(sb, str)
-
-    and the version using arena as allocator
-    - arena_da_append(arena, da, x)
-    - arena_da_append_many(arena, da, items, num_items)
-    - arena_sb_append_cstr(arena, sb, str)
-
-    ## arena allocator
-
-    void * arena_push_size(Arena *a, size_t size);
-    void   arena_reset(Arena *a);
-    void   arena_free(Arena *a);
-    Arena_Mark arena_snapshot(Arena *a);
-    void   arena_rewind(Arena *a, Arena_Mark m);
-    void   arena_set_allign(Arena *a, int allign);
-    void   arena_status(Arena *a);
-
-    ## repacement for formated strings
-    - sb_append_uint
-    - sb_append_as_hex
-    - sb_append_ascii
-    - sb_append_hex_dump
-    - sb_append_bytes_from_hex_str
-    TODO: sb_append_float
-
-    ## miscelaneous
-
-    - ARRAYSIZE(array)
-    - internal
-    - global_variable
-    - TODO(msg)
-    - UNREACHEABLE(fmt)
-
-
-    ## TODO
-    -[x] hex_string <-> byte array and xxd style hexdump
-    -[ ] base64     <-> byte array
-    -[ ] sb_appendf(sb, fmt, ...)
- */
-
 #ifndef COMMONS_H
 #define COMMONS_H
 
@@ -62,15 +9,28 @@
 #include <assert.h>
 #include <ctype.h>
 
-#define ARRAYSIZE(array) (sizeof(array) / sizeof(*(array)))
+///////////////////
+// macros
+
+#define ArraySize(array) (sizeof(array) / sizeof(*(array)))
+#define ARRAYSIZE ArraySize
 #define internal static
-#define global_variable static
 
 #define TODO(msg) do{fprintf(stderr, "%s:%i: TODO: " msg "\n", __FILE__,      \
         __LINE__ ); abort();}while(0)
 
 #define UNREACHEABLE(fmt) do{ fprintf(stderr, "%s:%i: UNREACHEABLE: "         \
         fmt "\n", __FILE__, __LINE__); abort();} while(0)
+
+#define Min(a,b) (((a)<(b))?(a):(b))
+#define Max(a,b) (((a)>(b))?(a):(b))
+
+#define IsPow2(val) (((val) != 0) && (((val) & ((val)-1)) == 0))
+#define AlignUpPow2(val, algn) (((val) + (algn) -1)&(~((algn) -1)))
+#define AlignDownPow2(val, algn) ((val)&(~((algn) -1)))
+
+///////////////////
+// loggin
 
 typedef enum {
     LOG_LEVEL_ERROR = 0,
@@ -81,27 +41,22 @@ typedef enum {
 
 extern LogLevel global_log_level;
 
-#define logfe(fmt, ...) if (global_log_level >= LOG_LEVEL_ERROR) fprintf(stderr, "[ERROR] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-#define logfw(fmt, ...) if (global_log_level >= LOG_LEVEL_WARN ) fprintf(stderr, "[WARN] %s:%d: "  fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-#define logfi(fmt, ...) if (global_log_level >= LOG_LEVEL_INFO ) fprintf(stdout, "[INFO] "  fmt "\n", ##__VA_ARGS__)
-#define logfd(fmt, ...) if (global_log_level >= LOG_LEVEL_DEBUG) fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
+#define logfe(fmt, ...) if (global_log_level >= LOG_LEVEL_ERROR) fprintf( \
+    stderr, "[ERROR] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define logfw(fmt, ...) if (global_log_level >= LOG_LEVEL_WARN ) fprintf( \
+    stderr, "[WARN] %s:%d: "  fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define logfi(fmt, ...) if (global_log_level >= LOG_LEVEL_INFO ) fprintf( \
+    stdout, "[INFO] "  fmt "\n", ##__VA_ARGS__)
+#define logfd(fmt, ...) if (global_log_level >= LOG_LEVEL_DEBUG) fprintf( \
+    stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
 
 #define logfed(...)
 #define logfwd(...)
 #define logfid(...)
 #define logfdd(...)
 
-/* Dynamic array:
- *
- *     da_append(da, item)      | adds item to da
- *
- */
-
-typedef struct {
-    char* items;
-    size_t size;
-    size_t capacity;
-} String_Builder;
+///////////////////
+// dynamic array
 
 #define da_append(da, item)                                         \
     do {                                                            \
@@ -130,9 +85,8 @@ typedef struct {
     } while(0)
 
 
-//
-// Arena
-//
+///////////////////
+// arena
 
 #define BLOCK_SIZE (4*1024)
 
@@ -148,7 +102,7 @@ struct Arena {
     Block *begin;
     Block *end;
     size_t size;
-    int allign;
+    int align;
 };
 
 typedef struct Arena_Mark Arena_Mark;
@@ -163,32 +117,22 @@ void   arena_free(Arena *a);
 Arena_Mark arena_snapshot(Arena *a);
 void   arena_rewind(Arena *a, Arena_Mark m);
 
-/* Set the allignment for all subsequent allocations.
-if allign is zero mean no allignment.
-*/
-void   arena_set_allign(Arena *a, int allign);
-
 /* print information about the curent internal state of allocator.
 */
 void   arena_status(Arena *a);
 
-/*   # arena da
-*/
-#define arena_da_append(arena, da, item)                           \
-    do {                                                           \
-        arena__da_reserve_with_size((arena), (void*)&(da)->items,  \
-        &(da)->capacity, (da)->size+1, sizeof(*(da)->items));      \
-        (da)->items[(da)->size++] = (item);                        \
-    } while(0)
-
-#define arena_da_reserve(arena, increment) arena__da_reserve_with_size( \
-        (arena), (void*)&(da)->items, &(da)->capacity,                  \
-        (da)->size + (increment), sizeof(*(da)->items))
-
-void arena__da_reserve_with_size(Arena *a, void** items, size_t *capacity,
-            size_t desired, size_t item_size);
+// internal utility function
 void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_t item_size);
-// string view
+
+///////////////////
+// strings
+
+typedef struct {
+    char* items;
+    size_t size;
+    size_t capacity;
+} String_Builder;
+
 typedef struct {
     const char* items;
     size_t size;
@@ -326,7 +270,6 @@ internal Block *new_block(size_t desired)
 void * arena_push_size(Arena *a, size_t size)
 {
     static_assert(sizeof(Block) % 8 == 0);
-    int allign = (a->allign)? a->allign : 1;
 
     if(a->end == NULL) {
         assert(a->begin == NULL);
@@ -334,9 +277,11 @@ void * arena_push_size(Arena *a, size_t size)
         a->begin = b;
         a->end = b;
         a->size = 0;
+        a->align = sizeof(void *);
     }
 
-    size_t offset = ((a->size + allign -1) / allign) * allign;
+    assert(IsPow2(a->align));
+    size_t offset = AlignUpPow2(a->size, a->align);
 
     while(offset + size > a->end->capacity && a->end->next != NULL) {
         a->end = a->end->next;
@@ -393,13 +338,6 @@ void   arena_rewind(Arena *a, Arena_Mark m)
     a->size = m.size;
 }
 
-void   arena_set_allign(Arena *a, int allign)
-{
-    assert( allign == 0 || allign == 1 || allign == 2 || allign == 4
-            || allign == 8 );
-    a->allign = allign;
-}
-
 void   arena_status(Arena *a)
 {
     size_t num_blocks = 0;
@@ -427,20 +365,6 @@ void   arena_status(Arena *a)
 
 }
 
-void arena__da_reserve_with_size(Arena *a, void** items, size_t *capacity, size_t desired, size_t item_size)
-{
-    if (desired <= *capacity) return;
-    size_t old_cap = *capacity;
-#define DA_BASE_CAP 8
-    if (*capacity == 0) *capacity = DA_BASE_CAP;
-    while (*capacity < desired) (*capacity) *= 2;
-    void* old_items = *items;
-    *items = arena_push_size(a, (*capacity) * item_size);
-    assert(*items);
-    memcpy(*items, old_items, old_cap);
-}
-
-//sv
 bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk)
 {
     const char* cursor;
@@ -617,3 +541,51 @@ bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_stri
 }
 
 #endif
+
+/** # common stuff for C
+
+    - dynamic arrays
+    - arena allocator
+    - and other basics
+
+    ## dynamic arrays
+
+    using libc:
+    - da_append(da, x)
+    - da_append_many(da, items, num_items)
+    - da_pop(da)
+    - da_free(da)
+    - sb_append_cstr(sb, str)
+
+    ## arena allocator
+
+    void * arena_push_size(Arena *a, size_t size);
+    void   arena_reset(Arena *a);
+    void   arena_free(Arena *a);
+    Arena_Mark arena_snapshot(Arena *a);
+    void   arena_rewind(Arena *a, Arena_Mark m);
+    void   arena_set_align(Arena *a, int align);
+    void   arena_status(Arena *a);
+
+    ## repacement for formated strings
+    - sb_append_uint
+    - sb_append_as_hex
+    - sb_append_ascii
+    - sb_append_hex_dump
+    - sb_append_bytes_from_hex_str
+    TODO: sb_append_float
+
+    ## miscelaneous
+
+    - ARRAYSIZE(array)
+    - internal
+    - global_variable
+    - TODO(msg)
+    - UNREACHEABLE(fmt)
+
+
+    ## TODO
+    -[x] hex_string <-> byte array and xxd style hexdump
+    -[ ] base64     <-> byte array
+    -[ ] sb_appendf(sb, fmt, ...)
+ */
