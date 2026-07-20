@@ -12,8 +12,7 @@
 ///////////////////
 // macros
 
-#define ArraySize(array) (sizeof(array) / sizeof(*(array)))
-#define ARRAYSIZE ArraySize
+#define ArrayCount(array) (sizeof(array) / sizeof(*(array)))
 #define internal static
 
 #define TODO(msg) do{fprintf(stderr, "%s:%i: TODO: " msg "\n", __FILE__,      \
@@ -61,22 +60,22 @@ extern LogLevel global_log_level;
 #define da_append(da, item)                                         \
     do {                                                            \
         da__reserve_with_size((void*)&(da)->items, &(da)->capacity, \
-                (da)->size+1, sizeof(*(da)->items));                \
-        (da)->items[(da)->size++] = (item);                         \
+                (da)->count+1, sizeof(*(da)->items));               \
+        (da)->items[(da)->count++] = (item);                        \
     } while(0)
 
 #define da_append_many(da, _items, num_items)                       \
     do {                                                            \
         da__reserve_with_size((void*)&(da)->items, &(da)->capacity, \
-                (da)->size + (num_items), sizeof(*(da)->items));    \
-        memcpy((da)->items + (da)->size, (_items),                  \
+                (da)->count + (num_items), sizeof(*(da)->items));   \
+        memcpy((da)->items + (da)->count, (_items),                 \
                 sizeof(*(da)->items) * num_items);                  \
-        (da)->size += (num_items);                                  \
+        (da)->count += (num_items);                                 \
     } while(0)
 
 #define da_reserve(da, increment)                                 \
     da__reserve_with_size((void*)&(da)->items, &(da)->capacity,   \
-            (da)->size + (increment), sizeof(*(da)->items))
+            (da)->count + (increment), sizeof(*(da)->items))
 
 #define sb_append_cstr(sb, cstr)                    \
     do {                                            \
@@ -122,31 +121,33 @@ void   arena_rewind(Arena *a, Arena_Mark m);
 void   arena_status(Arena *a);
 
 // internal utility function
-void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_t item_size);
+void da__reserve_with_size(void** items, size_t *capacity, size_t desired,
+    size_t item_size);
 
 ///////////////////
 // strings
 
 typedef struct {
     char* items;
-    size_t size;
+    size_t count;
     size_t capacity;
 } String_Builder;
 
 typedef struct {
     const char* items;
-    size_t size;
+    size_t count;
 } String_View;
 
 #define SV_fmt "%.*s"
-#define SV_arg(sv) (int)(sv)->size, (sv)->items
+#define SV_arg(sv) (int)(sv).count, (sv).items
 #define SV(strlit) sv_from_parts(strlit, sizeof(strlit)-1)
 
 String_View sv_chop_left(String_View *sv, size_t count);
 String_View sv_chop_right(String_View *sv, size_t count);
 bool sv_eq(const String_View a, const String_View b);
 bool sv_starts_with(String_View sv, String_View prefix);
-bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk);
+bool sv_try_chop_by_delim(String_View* sb, const char delim,
+    String_View* chunk);
 String_View sb_to_sv(String_Builder sb);
 String_View sv_trim_right(String_View sv);
 String_View sv_trim_left(String_View sv);
@@ -157,7 +158,8 @@ void sb_append_uint(String_Builder* sb, size_t val, int base, int min_digits);
 void sb_append_as_hex(String_Builder *dest, const String_View src);
 void sb_append_ascii(String_Builder* dst, String_View src);
 void sb_append_hex_dump(String_Builder* dst, String_View src);
-bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_string);
+bool sb_append_bytes_from_hex_str(String_Builder* sb,
+    const String_View hex_string);
 bool read_entire_file(const char* path, String_Builder *sb);
 bool write_entire_file(const char *path, const char *data, unsigned int size);
 
@@ -169,7 +171,8 @@ bool write_entire_file(const char *path, const char *data, unsigned int size);
 
 LogLevel global_log_level = LOG_LEVEL_WARN;
 
-void da__reserve_with_size(void** items, size_t *capacity, size_t desired, size_t item_size)
+void da__reserve_with_size(void** items, size_t *capacity, size_t desired,
+    size_t item_size)
 {
     if (desired <= *capacity) return;
 #define DA_BASE_CAP 8
@@ -206,14 +209,14 @@ bool read_entire_file(const char* path, String_Builder *sb)
         while(!feof(f)) {
             // da_reserve(sb, READ_SIZE_BLOCK);
             da__reserve_with_size((void**)(&sb->items), &sb->capacity,
-                    sb->size + READ_SIZE_BLOCK, sizeof(*sb->items));
+                    sb->count + READ_SIZE_BLOCK, sizeof(*sb->items));
 
-            size_t r = fread(sb->items + sb->size, 1, READ_SIZE_BLOCK, f);
+            size_t r = fread(sb->items + sb->count, 1, READ_SIZE_BLOCK, f);
             if (r == 0 && ferror(f)) {
                 result = false;
                 goto cleanup;
             }
-            sb->size += r;
+            sb->count += r;
         }
         goto cleanup;
     }
@@ -225,14 +228,14 @@ bool read_entire_file(const char* path, String_Builder *sb)
 
     // da_reserve(sb, file_size);
     da__reserve_with_size((void**)(&sb->items), &sb->capacity,
-            sb->size + file_size, sizeof(*sb->items));
-    if (fread(sb->items + sb->size, file_size, 1, f) == 0) {
+            sb->count + file_size, sizeof(*sb->items));
+    if (fread(sb->items + sb->count, file_size, 1, f) == 0) {
         if(ferror(f)) {
             return false;
             goto cleanup;
         }
     }
-    sb->size += file_size;
+    sb->count += file_size;
 
 cleanup:
     if (!result) perror("read_entire_file");
@@ -368,10 +371,11 @@ void   arena_status(Arena *a)
 
 }
 
-bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk)
+bool sv_try_chop_by_delim(String_View* sb, const char delim,
+    String_View* chunk)
 {
     const char* cursor;
-    const char* end = sb->items + sb->size;
+    const char* end = sb->items + sb->count;
 
     for(cursor = sb->items; cursor < end; cursor++) {
         if(*cursor == delim) break;
@@ -379,8 +383,8 @@ bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk)
 
     String_View result = sv_from_parts(sb->items, cursor - sb->items);
     if (cursor < end) {
-        sb->items += result.size + 1;
-        sb->size  -= result.size + 1;
+        sb->items += result.count + 1;
+        sb->count  -= result.count + 1;
         if (chunk) {
             *chunk = result;
         }
@@ -392,40 +396,40 @@ bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk)
 
 String_View sb_to_sv(String_Builder sb)
 {
-    return (String_View){.items = sb.items, .size = sb.size};
+    return (String_View){.items = sb.items, .count = sb.count};
 }
 
 String_View sv_chop_left(String_View *sv, size_t count)
 {
-    if(count > sv->size) {
-        count = sv->size;
+    if(count > sv->count) {
+        count = sv->count;
     }
 
     String_View result = sv_from_parts(sv->items, count);
-    
+
     sv->items += count;
-    sv->size  -= count;
-    
+    sv->count  -= count;
+
     return result;
 }
 
 String_View sv_chop_right(String_View *sv, size_t count)
 {
-    if(count > sv->size) {
-        count = sv->size;
+    if(count > sv->count) {
+        count = sv->count;
     }
 
-    String_View result = sv_from_parts(sv->items + sv->size - count, count);
-    
-    sv->size -= count;
-    
+    String_View result = sv_from_parts(sv->items + sv->count - count, count);
+
+    sv->count -= count;
+
     return result;
 }
 
 bool sv_eq(const String_View a, const String_View b)
 {
-    if(a.size != b.size) return false;
-    for(size_t i = 0; i < a.size; i++) {
+    if(a.count != b.count) return false;
+    for(size_t i = 0; i < a.count; i++) {
         if (a.items[i] != b.items[i]) return false;
     }
     return true;
@@ -433,21 +437,21 @@ bool sv_eq(const String_View a, const String_View b)
 
 bool sv_starts_with(String_View sv, String_View prefix)
 {
-    if(prefix.size > sv.size) return false;
-    return strncmp(sv.items, prefix.items, prefix.size) == 0;
+    if(prefix.count > sv.count) return false;
+    return strncmp(sv.items, prefix.items, prefix.count) == 0;
 }
 
 String_View sv_trim_right(String_View sv)
 {
-    while((sv.size) && isspace(sv.items[--sv.size])) ;
-    if(!isspace(sv.items[sv.size])) sv.size++;
+    while((sv.count) && isspace(sv.items[--sv.count])) ;
+    if(!isspace(sv.items[sv.count])) sv.count++;
     return sv;
 }
 
 String_View sv_trim_left(String_View sv)
 {
-    while(sv.size && isspace(*sv.items)) {
-        sv.size--;
+    while(sv.count && isspace(*sv.items)) {
+        sv.count--;
         sv.items++;
     }
     return sv;
@@ -458,16 +462,16 @@ String_View sv_trim_both(String_View sv)
     return sv_trim_left(sv_trim_right(sv));
 }
 
-String_View sv_from_parts(const char* items, size_t size)
+String_View sv_from_parts(const char* items, size_t count)
 {
-    return (String_View){.items = items, .size = size};
+    return (String_View){.items = items, .count = count};
 }
 
 void sb_append_as_hex(String_Builder *dest, const String_View src)
 {
     // const char hex_digits[] = "0123456789ABCDEF";
     const char hex_digits[] = "0123456789abcdef";
-    for(size_t i = 0; i < src.size; i++) {
+    for(size_t i = 0; i < src.count; i++) {
         unsigned char byte = src.items[i];
         da_append(dest, hex_digits[(byte >> 4) & 0xf]);
         da_append(dest, hex_digits[(byte >> 0) & 0xf]);
@@ -492,7 +496,8 @@ void sb_append_uint(String_Builder* sb, size_t val, int base, int min_digits)
 
     if(min_digits > dlen) dlen = min_digits;
 
-    da__reserve_with_size((void*)&sb->items, &sb->capacity, sb->size + dlen, sizeof(*sb->items));
+    da__reserve_with_size((void*)&sb->items, &sb->capacity, sb->count + dlen,
+        sizeof(*sb->items));
 
     while(dlen) {
         da_append(sb, digits[--dlen]);
@@ -501,7 +506,7 @@ void sb_append_uint(String_Builder* sb, size_t val, int base, int min_digits)
 
 void sb_append_ascii(String_Builder* dst, String_View src)
 {
-    for(size_t i = 0; i < src.size; i++){
+    for(size_t i = 0; i < src.count; i++){
         unsigned char c = src.items[i];
         da_append(dst, (c >= 32 && c < 128)? c : '.');
     }
@@ -512,14 +517,15 @@ void sb_append_ascii(String_Builder* dst, String_View src)
 void sb_append_hex_dump(String_Builder* dst, String_View src)
 {
     size_t line;
-    for(line = 0; line + BYTES_BY_LINE <= src.size; line+=BYTES_BY_LINE) {
+    for(line = 0; line + BYTES_BY_LINE <= src.count; line+=BYTES_BY_LINE) {
         sb_append_uint(dst, line, 16, 8);
         da_append_many(dst, ": ", 2);
         size_t col;
         for(col = 0; col + BYTES_BY_COL <= BYTES_BY_LINE;
             col+=BYTES_BY_COL)
         {
-            String_View group = sv_from_parts(src.items + line + col, BYTES_BY_COL);
+            String_View group = sv_from_parts(src.items + line + col,
+                BYTES_BY_COL);
             if(col) da_append(dst, ' ');
             sb_append_as_hex(dst, group);
         }
@@ -528,26 +534,28 @@ void sb_append_hex_dump(String_Builder* dst, String_View src)
         da_append(dst, '\n');
     }
 
-    if(src.size == line) return;
+    if(src.count == line) return;
     sb_append_uint(dst, line, 16, 8);
     da_append_many(dst, ": ", 2);
 
     size_t col;
-    for(col = 0; col + BYTES_BY_COL <= src.size - line;
+    for(col = 0; col + BYTES_BY_COL <= src.count - line;
         col+=BYTES_BY_COL)
     {
-        String_View group = sv_from_parts(src.items + line + col, BYTES_BY_COL);
+        String_View group = sv_from_parts(src.items + line + col,
+            BYTES_BY_COL);
         if(col) da_append(dst, ' ');
         sb_append_as_hex(dst, group);
     }
 
-    if(line + col != src.size) {
-        String_View group = sv_from_parts(src.items + line + col, src.size - line - col);
+    if(line + col != src.count) {
+        String_View group = sv_from_parts(src.items + line + col, src.count
+            -line -col);
         if(col) da_append(dst, ' ');
         sb_append_as_hex(dst, group);
     }
 
-    size_t padding = BYTES_BY_LINE - (src.size - line);
+    size_t padding = BYTES_BY_LINE - (src.count - line);
     padding = 2*padding + (padding / BYTES_BY_COL);
     // padding++;
 
@@ -556,17 +564,21 @@ void sb_append_hex_dump(String_Builder* dst, String_View src)
     }
 
     da_append_many(dst, "  ", 2);
-    sb_append_ascii(dst, sv_from_parts(src.items + line, src.size - line));
+    sb_append_ascii(dst, sv_from_parts(src.items + line, src.count - line));
     da_append(dst, '\n');
 }
 
-bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_string)
+bool sb_append_bytes_from_hex_str(String_Builder* sb,
+    const String_View hex_string)
 {
-    if((hex_string.size % 2) != 0) return false;
+    if((hex_string.count % 2) != 0) return false;
 
-    da__reserve_with_size((void*)&sb->items, &sb->capacity, sb->size + hex_string.size / 2,
-            sizeof(*sb->items));
-    for(size_t i = 0; i < hex_string.size; i+=2) {
+    da__reserve_with_size((void*)&sb->items,
+        &sb->capacity,
+        sb->count + hex_string.count / 2,
+        sizeof(*sb->items)
+    );
+    for(size_t i = 0; i < hex_string.count; i+=2) {
         unsigned char byte = ((hex_string.items[i] & 0xF)
                 + (hex_string.items[i] >> 6))
                 | ((hex_string.items[i] >> 3) & 0x8);
@@ -616,12 +628,11 @@ bool sb_append_bytes_from_hex_str(String_Builder* sb, const String_View hex_stri
 
     ## miscelaneous
 
-    - ARRAYSIZE(array)
+    - ArrayCount(array)
     - internal
     - global_variable
     - TODO(msg)
     - UNREACHEABLE(fmt)
-
 
     ## TODO
     -[x] hex_string <-> byte array and xxd style hexdump
