@@ -140,8 +140,11 @@ typedef struct {
 
 #define SV_fmt "%.*s"
 #define SV_arg(sv) (int)(sv)->size, (sv)->items
-#define SV(strlit) ((String_View){.size=sizeof(strlit)-1, .items=strlit})
+#define SV(strlit) sv_from_parts(strlit, sizeof(strlit)-1)
 
+String_View sv_chop_left(String_View *sv, size_t count);
+String_View sv_chop_right(String_View *sv, size_t count);
+bool sv_eq(const String_View a, const String_View b);
 bool sv_starts_with(String_View sv, String_View prefix);
 bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk);
 String_View sb_to_sv(String_Builder sb);
@@ -269,7 +272,7 @@ internal Block *new_block(size_t desired)
 
 void * arena_push_size(Arena *a, size_t size)
 {
-    static_assert(sizeof(Block) % 8 == 0);
+    static_assert(sizeof(Block) % 8 == 0, "invalid block allignment");
 
     if(a->end == NULL) {
         assert(a->begin == NULL);
@@ -390,6 +393,42 @@ bool sv_try_chop_by_delim(String_View* sb, const char delim, String_View* chunk)
 String_View sb_to_sv(String_Builder sb)
 {
     return (String_View){.items = sb.items, .size = sb.size};
+}
+
+String_View sv_chop_left(String_View *sv, size_t count)
+{
+    if(count > sv->size) {
+        count = sv->size;
+    }
+
+    String_View result = sv_from_parts(sv->items, count);
+    
+    sv->items += count;
+    sv->size  -= count;
+    
+    return result;
+}
+
+String_View sv_chop_right(String_View *sv, size_t count)
+{
+    if(count > sv->size) {
+        count = sv->size;
+    }
+
+    String_View result = sv_from_parts(sv->items + sv->size - count, count);
+    
+    sv->size -= count;
+    
+    return result;
+}
+
+bool sv_eq(const String_View a, const String_View b)
+{
+    if(a.size != b.size) return false;
+    for(size_t i = 0; i < a.size; i++) {
+        if (a.items[i] != b.items[i]) return false;
+    }
+    return true;
 }
 
 bool sv_starts_with(String_View sv, String_View prefix)
